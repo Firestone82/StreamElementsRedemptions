@@ -75,14 +75,14 @@
   }
 </div>
 
-@if (showPager()) {
+@if (content()) {
   <div class="flex flex-wrap items-center justify-between gap-3 border-t border-line px-4 py-3 text-sm">
     <div class="flex items-center gap-2 text-mut">
       <span>Rows per page</span>
       <select
         data-focusable
         class="rounded-md border border-line bg-raised px-2 py-1 text-text focus:border-iris focus:outline-none"
-        [ngModel]="pageSize()"
+        [ngModel]="content()?.pageSize ?? 20"
         (ngModelChange)="pageSizeChange.emit(+$event)"
       >
         <option [value]="10">10</option>
@@ -96,7 +96,7 @@
         <button
           data-focusable
           type="button"
-          [disabled]="prevDisabled()"
+          [disabled]="(content()?.offset ?? 0) <= 0"
           class="rounded-md border border-line bg-raised px-2.5 py-1 text-soft transition hover:border-iris disabled:opacity-40 disabled:hover:border-line focus:outline-none"
           (click)="prevPage.emit()"
         >
@@ -105,7 +105,7 @@
         <button
           data-focusable
           type="button"
-          [disabled]="nextDisabled()"
+          [disabled]="!(content()?.hasMore ?? false)"
           class="rounded-md border border-line bg-raised px-2.5 py-1 text-soft transition hover:border-iris disabled:opacity-40 disabled:hover:border-line focus:outline-none"
           (click)="nextPage.emit()"
         >

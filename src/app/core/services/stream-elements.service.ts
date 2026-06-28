@@ -5,9 +5,8 @@ import {
   Channel,
   GroupedUser,
   RedemptionAccumulator,
+  RedemptionQuery,
   RedemptionRow,
-  SortKey,
-  SortOrder,
   StoreItem,
 } from '../models/models';
 import {
@@ -141,21 +140,13 @@ export class StreamElementsService {
   }
 
   /** Returns (creating if needed) the cached accumulator for this query. */
-  async getAcc(
-    itemId: string,
-    itemName: string,
-    from: string | null,
-    to: string | null,
-    sortKey: SortKey,
-    order: SortOrder,
-    refresh: boolean = false,
-  ): Promise<{ channel: string; acc: RedemptionAccumulator }> {
+  async getAcc(query: RedemptionQuery, refresh: boolean = false): Promise<{ channel: string; acc: RedemptionAccumulator }> {
     const channel: string = (await this.getChannel()).id;
-    const key: string = this.accKey(channel, itemId, from, to, sortKey, order);
+    const key: string = this.accKey(channel, query);
     let acc: RedemptionAccumulator | undefined = this.accCache.get(key);
 
     if (!acc || refresh || Date.now() - acc.ts > CACHE_TTL_MS) {
-      acc = this.newAcc(itemName);
+      acc = this.newAcc(query.itemName);
       this.accCache.set(key, acc);
     }
 
@@ -163,19 +154,9 @@ export class StreamElementsService {
   }
 
   /** Fetches pages until the accumulator holds at least `target` matching rows, or is exhausted. */
-  async extendUntil(
-    channel: string,
-    acc: RedemptionAccumulator,
-    itemId: string,
-    itemName: string,
-    from: string | null,
-    to: string | null,
-    sortKey: SortKey,
-    order: SortOrder,
-    target: number,
-  ): Promise<void> {
+  async extendUntil(channel: string, acc: RedemptionAccumulator, query: RedemptionQuery, target: number): Promise<void> {
     while (!acc.exhausted && acc.rows.length < target) {
-      await this.fetchOnePage(channel, acc, itemId, itemName, from, to, sortKey, order);
+      await this.fetchOnePage(channel, acc, query);
     }
   }
 
@@ -183,16 +164,11 @@ export class StreamElementsService {
   async drain(
     channel: string,
     acc: RedemptionAccumulator,
-    itemId: string,
-    itemName: string,
-    from: string | null,
-    to: string | null,
-    sortKey: SortKey,
-    order: SortOrder,
+    query: RedemptionQuery,
     onProgress?: (acc: RedemptionAccumulator) => void,
   ): Promise<void> {
     while (!acc.exhausted) {
-      await this.fetchOnePage(channel, acc, itemId, itemName, from, to, sortKey, order);
+      await this.fetchOnePage(channel, acc, query);
       onProgress?.(acc);
     }
   }
@@ -242,8 +218,8 @@ export class StreamElementsService {
     return list;
   }
 
-  private accKey(channel: string, itemId: string, from: string | null, to: string | null, sortKey: SortKey, order: SortOrder): string {
-    return JSON.stringify([channel, itemId, from ?? '', to ?? '', sortKey, order]);
+  private accKey(channel: string, query: RedemptionQuery): string {
+    return JSON.stringify([channel, query.itemId, query.from ?? '', query.to ?? '', query.sortKey, query.order]);
   }
 
   private newAcc(itemName: string): RedemptionAccumulator {
@@ -251,10 +227,10 @@ export class StreamElementsService {
     return { rows: [], nextOffset: 0, scanned: 0, pages: 0, exhausted: false, nameSearch, filterLocked: false, ts: Date.now() };
   }
 
-  private matchesItem(doc: SeRedemptionDoc, itemId: string, itemName: string): boolean {
+  private matchesItem(doc: SeRedemptionDoc, query: RedemptionQuery): boolean {
     const item = doc.item ?? {};
-    if (item._id != null) return item._id === itemId;
-    return item.name === itemName;
+    if (item._id != null) return item._id === query.itemId;
+    return item.name === query.itemName;
   }
 
   private flattenInput(input?: SeRedemptionDoc['input']): string {
@@ -270,24 +246,15 @@ export class StreamElementsService {
     return parts.join(' | ');
   }
 
-  private async fetchOnePage(
-    channel: string,
-    acc: RedemptionAccumulator,
-    itemId: string,
-    itemName: string,
-    from: string | null,
-    to: string | null,
-    sortKey: SortKey,
-    order: SortOrder,
-  ): Promise<void> {
+  private async fetchOnePage(channel: string, acc: RedemptionAccumulator, query: RedemptionQuery): Promise<void> {
     if (acc.exhausted) return;
 
-    const data: SeRedemptionSearchResponse = await this.seSearchPage(channel, acc, from, to, sortKey, order);
+    const data: SeRedemptionSearchResponse = await this.seSearchPage(channel, acc, query);
     const docs: SeRedemptionDoc[] = data.docs ?? [];
     const total: number | undefined = data._total;
 
     for (const doc of docs) {
-      if (!this.matchesItem(doc, itemId, itemName)) continue;
+      if (!this.matchesItem(doc, query)) continue;
 
       acc.rows.push({
         id: doc._id,
@@ -308,20 +275,13 @@ export class StreamElementsService {
     }
   }
 
-  private async seSearchPage(
-    channel: string,
-    acc: RedemptionAccumulator,
-    from: string | null,
-    to: string | null,
-    sortKey: SortKey,
-    order: SortOrder,
-  ): Promise<SeRedemptionSearchResponse> {
+  private async seSearchPage(channel: string, acc: RedemptionAccumulator, query: RedemptionQuery): Promise<SeRedemptionSearchResponse> {
     const base: Record<string, string | number> = { offset: acc.nextOffset, limit: SE_PAGE_SIZE, pending: 'false' };
-    if (from) base['from'] = from;
-    if (to) base['to'] = to;
+    if (query.from) base['from'] = query.from;
+    if (query.to) base['to'] = query.to;
 
-    const field: string = sortKey === 'name' ? 'redeemer.username' : 'updatedAt';
-    const direction: number = order === 'asc' ? 1 : -1;
+    const field: string = query.sortKey === 'name' ? 'redeemer.username' : 'updatedAt';
+    const direction: number = query.order === 'asc' ? 1 : -1;
     const sorts: string[] = [JSON.stringify({ [field]: direction }), field];
 
     const attempts: [Record<string, string | number>, boolean][] = [];

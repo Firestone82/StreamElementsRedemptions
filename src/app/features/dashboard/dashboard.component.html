@@ -1,8 +1,8 @@
 <div class="mx-auto max-w-[1500px] px-4 sm:px-6 lg:px-8">
   <app-header
     [channelName]="channelName()"
-    [availableChannels]="availableChannels()"
-    [selectedChannelId]="channelId()"
+    [availableChannels]="streamElementsService.availableChannels()"
+    [selectedChannelId]="channelAsync.body()?.id ?? ''"
     (channelChange)="onChannelChange($event)"
     (disconnect)="onDisconnect()"
   />
@@ -21,10 +21,10 @@
           <p class="mt-0.5 text-xs text-mut">
             {{ selectedItem() ? (selectedItem()!.enabled ? 'Active item' : 'Inactive item') : 'Select an item to load its redemptions.' }}
           </p>
-          @if (selectedItemDetail()) {
+          @if (itemDetailAsync.body()) {
             <p class="mt-1 font-mono text-xs text-soft">
-              Price: {{ selectedItemDetail()!.cost ?? '—' }} · Purchased: {{ selectedItemDetail()!.currentlyPurchased ?? '—' }} · Remaining:
-              {{ selectedItemDetail()!.remaining ?? '—' }}
+              Price: {{ itemDetailAsync.body()!.cost ?? '—' }} · Purchased: {{ itemDetailAsync.body()!.currentlyPurchased ?? '—' }} · Remaining:
+              {{ itemDetailAsync.body()!.remaining ?? '—' }}
             </p>
           }
         </div>

@@ -1,11 +1,14 @@
 import { Component, OnDestroy, OnInit, Signal, WritableSignal, computed, inject, signal } from '@angular/core';
+import { ActivatedRoute, ParamMap, Router } from '@angular/router';
+import { Subscription } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
 import { ExportService } from '../../core/services/export.service';
 import { StreamElementsService } from '../../core/services/stream-elements.service';
 import { isAuthError } from '../../core/services/se-error';
-import { isoBounds, todayIso } from '../../core/utils/date.util';
-import { Channel, ExportFormat, GroupedUser, PaginatedContent, RedemptionRow, SortKey, SortOrder, StoreItem } from '../../core/models/models';
+import { Channel, ExportFormat, GroupedUser, PaginatedContent, RedemptionQuery, RedemptionRow, SortKey, SortOrder, StoreItem } from '../../core/models/models';
 import { AsyncSignal } from '../../core/state/async-signal';
+import { DateRange } from '../../core/state/date-range';
+import { Pagination } from '../../core/state/pagination';
 import { HeaderComponent } from './header/header.component';
 import { ItemsListComponent } from './items-list/items-list.component';
 import { RedemptionsControlsComponent } from './redemptions-controls/redemptions-controls.component';
@@ -26,8 +29,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
   // === Dependencies ============
   // =============================
   private readonly authService = inject(AuthService);
-  private readonly streamElementsService = inject(StreamElementsService);
+  protected readonly streamElementsService = inject(StreamElementsService);
   private readonly exportService = inject(ExportService);
+  private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
 
   // =============================
   // === Async state ==============
@@ -40,30 +45,19 @@ export class DashboardComponent implements OnInit, OnDestroy {
   // =============================
   // === State ====================
   // =============================
-  readonly availableChannels: Signal<Channel[]> = this.streamElementsService.availableChannels;
-  readonly channelId: WritableSignal<string> = signal<string>('');
   readonly banner: WritableSignal<string> = signal<string>('');
 
   readonly items: Signal<StoreItem[]> = this.itemsAsync.body;
   readonly selectedItem: WritableSignal<StoreItem | null> = signal<StoreItem | null>(null);
-  readonly selectedItemDetail: Signal<StoreItem | null> = this.itemDetailAsync.body;
 
-  readonly appliedFrom: WritableSignal<string> = signal<string>(todayIso());
-  readonly appliedTo: WritableSignal<string> = signal<string>(todayIso());
+  private readonly dateRange: DateRange = new DateRange();
   readonly sortKey: WritableSignal<SortKey> = signal<SortKey>('date');
   readonly sortOrder: WritableSignal<SortOrder> = signal<SortOrder>('desc');
 
-  readonly offset: WritableSignal<number> = signal<number>(0);
-  readonly pageSize: WritableSignal<number> = signal<number>(20);
-  readonly hasMore: WritableSignal<boolean> = signal<boolean>(false);
-  readonly fetchedCount: WritableSignal<number> = signal<number>(0);
-  readonly exhausted: WritableSignal<boolean> = signal<boolean>(false);
-  readonly totalCount: WritableSignal<number | null> = signal<number | null>(null);
+  private readonly pagination: Pagination = new Pagination();
 
   readonly grouped: WritableSignal<boolean> = signal<boolean>(false);
   readonly groupSearch: WritableSignal<string> = signal<string>('');
-  readonly groupOffset: WritableSignal<number> = signal<number>(0);
-  readonly groupPageSize: WritableSignal<number> = signal<number>(20);
 
   readonly loadingText: WritableSignal<string> = signal<string>('Loading...');
   readonly progressText: WritableSignal<string> = signal<string>('');
@@ -90,38 +84,29 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   readonly groupTotalUsers: Signal<number> = computed<number>(() => this.filteredGroups().length);
   readonly groupTotalRedemptions: Signal<number> = computed<number>(() => this.filteredGroups().reduce((sum, g) => sum + g.count, 0));
-  readonly clampedGroupOffset: Signal<number> = computed<number>(() => Math.min(this.groupOffset(), Math.max(0, this.groupTotalUsers() - 1)));
+  readonly clampedGroupOffset: Signal<number> = computed<number>(() =>
+    Math.min(this.pagination.offset(), Math.max(0, this.groupTotalUsers() - 1)),
+  );
   readonly groupPageRows: Signal<GroupedUser[]> = computed<GroupedUser[]>(() =>
-    this.filteredGroups().slice(this.clampedGroupOffset(), this.clampedGroupOffset() + this.groupPageSize()),
+    this.filteredGroups().slice(this.clampedGroupOffset(), this.clampedGroupOffset() + this.pagination.pageSize()),
   );
 
   readonly detailStats: Signal<string> = computed<string>(() => {
     if (!this.selectedItem()) return '';
     if (this.grouped()) return `${this.groupTotalUsers()} users · ${this.groupTotalRedemptions()} redemptions`;
-    return this.exhausted() ? `${this.totalCount()} redemptions` : `${this.fetchedCount()}+ loaded...`;
+    const stats = this.pagination.stats();
+    return stats.totalCount !== null ? `${stats.totalCount} redemptions` : `${stats.fetchedCount}+ loaded...`;
   });
 
-  readonly rowsContent: Signal<PaginatedContent<RedemptionRow>> = computed<PaginatedContent<RedemptionRow>>(() => ({
-    items: this.rows(),
-    offset: this.offset(),
-    pageSize: this.pageSize(),
-    knownCount: this.fetchedCount(),
-    total: this.exhausted() ? this.totalCount() : null,
-    hasMore: this.hasMore(),
-  }));
+  readonly rowsContent: Signal<PaginatedContent<RedemptionRow>> = computed<PaginatedContent<RedemptionRow>>(() =>
+    this.pagination.toContent(this.rows()),
+  );
 
   readonly groupsContent: Signal<PaginatedContent<GroupedUser>> = computed<PaginatedContent<GroupedUser>>(() => {
     const offset: number = this.clampedGroupOffset();
     const pageRows: GroupedUser[] = this.groupPageRows();
     const total: number = this.groupTotalUsers();
-    return {
-      items: pageRows,
-      offset,
-      pageSize: this.groupPageSize(),
-      knownCount: total,
-      total,
-      hasMore: offset + pageRows.length < total,
-    };
+    return { items: pageRows, offset, pageSize: this.pagination.pageSize(), knownCount: total, total, hasMore: offset + pageRows.length < total };
   });
 
   readonly tableContent: Signal<PaginatedContent<RedemptionRow | GroupedUser> | null> = computed<PaginatedContent<RedemptionRow | GroupedUser> | null>(
@@ -136,21 +121,20 @@ export class DashboardComponent implements OnInit, OnDestroy {
   // =============================
   private loadTimer: ReturnType<typeof setInterval> | null = null;
   private liveProgress: boolean = false;
-
-  private readonly onHashChange = (): void => {
-    const id: string | null = this.itemIdFromHash();
-    if (id) void this.selectItem(id, false);
-  };
+  private routeSub: Subscription | null = null;
 
   async ngOnInit(): Promise<void> {
-    window.addEventListener('hashchange', this.onHashChange);
+    this.routeSub = this.route.paramMap.subscribe((params: ParamMap) => {
+      const id: string | null = params.get('id');
+      if (id) void this.selectItem(id, false);
+    });
     await this.streamElementsService.loadChannelOptions();
     await this.loadChannel();
     await this.loadItems();
   }
 
   ngOnDestroy(): void {
-    window.removeEventListener('hashchange', this.onHashChange);
+    this.routeSub?.unsubscribe();
     this.stopProgressTimer();
   }
 
@@ -162,6 +146,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.selectedItem.set(null);
     this.itemDetailAsync.reset(null);
     this.grouped.set(false);
+    this.pagination.reset();
     this.redemptionsAsync.reset({ rows: [], groups: [] });
     this.banner.set('');
     await this.loadChannel();
@@ -172,19 +157,19 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.authService.clear();
   }
 
-  async selectItem(id: string, pushHash: boolean = true): Promise<void> {
+  async selectItem(id: string, updateUrl: boolean = true): Promise<void> {
+    if (id === this.selectedItem()?.id) return;
+
     const item: StoreItem | undefined = this.items().find((i) => i.id === id);
     if (!item) return;
 
     this.selectedItem.set(item);
     this.itemDetailAsync.reset(null);
-    this.offset.set(0);
+    this.pagination.reset();
     this.grouped.set(false);
     this.groupSearch.set('');
 
-    if (pushHash && window.location.hash !== `#/items/${id}`) {
-      window.location.hash = `#/items/${id}`;
-    }
+    if (updateUrl) void this.router.navigate(['/items', id]);
 
     void this.loadItemDetailStats(id);
     await this.loadPage();
@@ -198,15 +183,16 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.startBusy('Fetching redemptions...');
 
     try {
-      const [from, to]: [string | null, string | null] = isoBounds(this.appliedFrom(), this.appliedTo());
-      const { channel, acc } = await this.streamElementsService.getAcc(item.id, item.name, from, to, this.sortKey(), this.sortOrder());
-      await this.streamElementsService.extendUntil(channel, acc, item.id, item.name, from, to, this.sortKey(), this.sortOrder(), this.offset() + this.pageSize() + 1);
+      const query: RedemptionQuery = this.buildQuery(item);
+      const { channel, acc } = await this.streamElementsService.getAcc(query);
+      const offset: number = this.pagination.offset();
+      const pageSize: number = this.pagination.pageSize();
+      await this.streamElementsService.extendUntil(channel, acc, query, offset + pageSize + 1);
 
-      const page: RedemptionRow[] = acc.rows.slice(this.offset(), this.offset() + this.pageSize());
-      this.fetchedCount.set(acc.rows.length);
-      this.exhausted.set(acc.exhausted);
-      this.totalCount.set(acc.exhausted ? acc.rows.length : null);
-      this.hasMore.set(!acc.exhausted || acc.rows.length > this.offset() + this.pageSize());
+      const page: RedemptionRow[] = acc.rows.slice(offset, offset + pageSize);
+      const totalCount: number | null = acc.exhausted ? acc.rows.length : null;
+      const hasMore: boolean = !acc.exhausted || acc.rows.length > offset + pageSize;
+      this.pagination.update({ fetchedCount: acc.rows.length, totalCount, hasMore });
       this.redemptionsAsync.succeed({ rows: page, groups: this.groupAll() });
     } catch (err) {
       this.redemptionsAsync.failWith({ rows: [], groups: this.groupAll() }, this.toErrorMessage(err));
@@ -223,7 +209,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       this.sortKey.set(key);
       this.sortOrder.set(key === 'name' ? 'asc' : 'desc');
     }
-    this.offset.set(0);
+    this.pagination.reset();
     void this.loadPage();
   }
 
@@ -238,7 +224,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     try {
       const { groups } = await this.fetchFull('group');
       this.grouped.set(true);
-      this.groupOffset.set(0);
+      this.pagination.reset();
       this.redemptionsAsync.succeed({ rows: this.rows(), groups });
     } catch (err) {
       this.handleError(err);
@@ -246,9 +232,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   async onApplyRange(range: { from: string; to: string }): Promise<void> {
-    this.appliedFrom.set(range.from);
-    this.appliedTo.set(range.to);
-    this.offset.set(0);
+    this.dateRange.set(range.from, range.to);
+    this.pagination.reset();
     this.grouped() ? await this.showGrouped() : await this.loadPage();
   }
 
@@ -258,15 +243,14 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
     this.startBusy('Refreshing...');
     try {
-      const [from, to]: [string | null, string | null] = isoBounds(this.appliedFrom(), this.appliedTo());
-      await this.streamElementsService.getAcc(item.id, item.name, from, to, this.sortKey(), this.sortOrder(), true);
+      await this.streamElementsService.getAcc(this.buildQuery(item), true);
     } catch {
       // best-effort cache bust; the reload below surfaces any real error
     } finally {
       this.stopBusy();
     }
 
-    this.offset.set(0);
+    this.pagination.reset();
     this.grouped() ? await this.showGrouped() : await this.loadPage();
   }
 
@@ -304,46 +288,36 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   onGroupSearchChange(value: string): void {
     this.groupSearch.set(value);
-    this.groupOffset.set(0);
+    this.pagination.reset();
   }
 
   onPrev(): void {
-    if (this.grouped()) {
-      this.groupOffset.set(Math.max(0, this.groupOffset() - this.groupPageSize()));
-    } else {
-      this.offset.set(Math.max(0, this.offset() - this.pageSize()));
-      void this.loadPage();
-    }
+    this.pagination.prev();
+    if (!this.grouped()) void this.loadPage();
   }
 
   onNext(): void {
-    if (this.grouped()) {
-      this.groupOffset.set(this.groupOffset() + this.groupPageSize());
-    } else {
-      this.offset.set(this.offset() + this.pageSize());
-      void this.loadPage();
-    }
+    this.pagination.next();
+    if (!this.grouped()) void this.loadPage();
   }
 
   onPageSizeChange(value: number): void {
-    if (this.grouped()) {
-      this.groupPageSize.set(value);
-      this.groupOffset.set(0);
-    } else {
-      this.pageSize.set(value);
-      this.offset.set(0);
-      void this.loadPage();
-    }
+    this.pagination.setPageSize(value);
+    if (!this.grouped()) void this.loadPage();
   }
 
   // =============================
   // === Internals =================
   // =============================
+  private buildQuery(item: StoreItem): RedemptionQuery {
+    const [from, to]: [string | null, string | null] = this.dateRange.bounds();
+    return { itemId: item.id, itemName: item.name, from, to, sortKey: this.sortKey(), order: this.sortOrder() };
+  }
+
   private async loadChannel(): Promise<void> {
     this.channelAsync.start();
     try {
       const channel: Channel = await this.streamElementsService.getChannel();
-      this.channelId.set(channel.id);
       this.channelAsync.succeed(channel);
     } catch (err) {
       this.channelAsync.fail(this.toErrorMessage(err));
@@ -356,8 +330,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
     try {
       const items: StoreItem[] = await this.streamElementsService.getItems();
       this.itemsAsync.succeed(items);
-      const hashId: string | null = this.itemIdFromHash();
-      if (hashId) await this.selectItem(hashId, false);
+      const id: string | null = this.route.snapshot.paramMap.get('id');
+      if (id) await this.selectItem(id, false);
     } catch (err) {
       this.itemsAsync.fail(this.toErrorMessage(err));
       this.handleError(err);
@@ -379,14 +353,14 @@ export class DashboardComponent implements OnInit, OnDestroy {
     const item: StoreItem | null = this.selectedItem();
     if (!item) return { rows: [], groups: [] };
 
-    const [from, to]: [string | null, string | null] = isoBounds(this.appliedFrom(), this.appliedTo());
-    const { channel, acc } = await this.streamElementsService.getAcc(item.id, item.name, from, to, this.sortKey(), this.sortOrder());
+    const query: RedemptionQuery = this.buildQuery(item);
+    const { channel, acc } = await this.streamElementsService.getAcc(query);
 
     this.startBusy(purpose === 'group' ? 'Fetching all entries to group...' : 'Fetching all entries to export...');
     const t0: number = Date.now();
 
     try {
-      await this.streamElementsService.drain(channel, acc, item.id, item.name, from, to, this.sortKey(), this.sortOrder(), (a) => {
+      await this.streamElementsService.drain(channel, acc, query, (a) => {
         const secs: string = ((Date.now() - t0) / 1000).toFixed(1);
         this.setLiveProgress(`${a.rows.length} rows · ${a.scanned} scanned · ${a.pages} pages · ${secs}s`);
       });
@@ -396,11 +370,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
     } finally {
       this.stopBusy();
     }
-  }
-
-  private itemIdFromHash(): string | null {
-    const match: RegExpMatchArray | null = window.location.hash.match(/^#\/items\/(.+)$/);
-    return match ? decodeURIComponent(match[1]) : null;
   }
 
   private toErrorMessage(err: unknown): string {

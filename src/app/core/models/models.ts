@@ -55,3 +55,13 @@ export interface PaginatedContent<T> {
   total: number | null;
   hasMore: boolean;
 }
+
+/** Bundles the redemption-search parameters that otherwise get threaded through every StreamElementsService call. */
+export interface RedemptionQuery {
+  itemId: string;
+  itemName: string;
+  from: string | null;
+  to: string | null;
+  sortKey: SortKey;
+  order: SortOrder;
+}

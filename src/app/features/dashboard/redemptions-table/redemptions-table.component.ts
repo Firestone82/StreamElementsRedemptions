@@ -32,11 +32,6 @@ export class RedemptionsTableComponent {
   // =============================
   readonly showPlaceholder: Signal<boolean> = computed<boolean>(() => this.content() === null);
   readonly isEmpty: Signal<boolean> = computed<boolean>(() => (this.content()?.items.length ?? 0) === 0);
-  readonly showPager: Signal<boolean> = computed<boolean>(() => this.content() !== null);
-  readonly pageSize: Signal<number> = computed<number>(() => this.content()?.pageSize ?? 20);
-
-  readonly prevDisabled: Signal<boolean> = computed<boolean>(() => (this.content()?.offset ?? 0) <= 0);
-  readonly nextDisabled: Signal<boolean> = computed<boolean>(() => !(this.content()?.hasMore ?? false));
 
   readonly rangeLabel: Signal<string> = computed<string>(() => {
     const content: PaginatedContent<RedemptionRow | GroupedUser> | null = this.content();
