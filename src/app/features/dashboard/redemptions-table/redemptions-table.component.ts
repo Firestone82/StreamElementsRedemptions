@@ -1,7 +1,9 @@
-import { Component, InputSignal, OutputEmitterRef, Signal, computed, input, output } from '@angular/core';
+import { Component, InputSignal, Signal, computed, input } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { GroupedUser, PaginatedContent, RedemptionRow, SortKey, SortOrder } from '../../../core/models/models';
+import { GroupedUser, PaginatedContent, RedemptionRow, SortKey } from '../../../core/models/models';
 import { FormatDateTimePipe } from '../../../core/pipes/format-date-time.pipe';
+import { PaginationPair } from '../../../core/state/pagination-pair';
+import { SortablePair } from '../../../core/state/sortable-pair';
 
 @Component({
   selector: 'app-redemptions-table',
@@ -9,27 +11,25 @@ import { FormatDateTimePipe } from '../../../core/pipes/format-date-time.pipe';
   templateUrl: './redemptions-table.component.html',
 })
 export class RedemptionsTableComponent {
-  // =============================
-  // === Inputs / Outputs ========
-  // =============================
-  readonly content: InputSignal<PaginatedContent<RedemptionRow | GroupedUser> | null> = input<PaginatedContent<RedemptionRow | GroupedUser> | null>(null);
+
+  // ===================================
+  // ===] Inputs / Outputs [============
+
+  readonly pagination: InputSignal<PaginationPair<RedemptionRow | GroupedUser> | null> = input<PaginationPair<RedemptionRow | GroupedUser> | null>(null);
+  readonly sortable: InputSignal<SortablePair | null> = input<SortablePair | null>(null);
   readonly grouped: InputSignal<boolean> = input<boolean>(false);
   readonly busy: InputSignal<boolean> = input<boolean>(false);
   readonly loadingText: InputSignal<string> = input<string>('Loading...');
   readonly progressText: InputSignal<string> = input<string>('');
   readonly progressPct: InputSignal<number> = input<number>(35);
 
-  readonly sortKey: InputSignal<SortKey> = input<SortKey>('date');
-  readonly sortOrder: InputSignal<SortOrder> = input<SortOrder>('desc');
+  // ===================================
+  // ===] Computed (pagination) [=======
 
-  readonly sortChange: OutputEmitterRef<SortKey> = output<SortKey>();
-  readonly prevPage: OutputEmitterRef<void> = output<void>();
-  readonly nextPage: OutputEmitterRef<void> = output<void>();
-  readonly pageSizeChange: OutputEmitterRef<number> = output<number>();
+  readonly content: Signal<PaginatedContent<RedemptionRow | GroupedUser> | null> = computed<PaginatedContent<RedemptionRow | GroupedUser> | null>(
+    () => this.pagination()?.content() ?? null,
+  );
 
-  // =============================
-  // === Computed (pagination) ===
-  // =============================
   readonly showPlaceholder: Signal<boolean> = computed<boolean>(() => this.content() === null);
   readonly isEmpty: Signal<boolean> = computed<boolean>(() => (this.content()?.items.length ?? 0) === 0);
 
@@ -42,21 +42,22 @@ export class RedemptionsTableComponent {
     return `${start}–${end} of ${totalTxt}`;
   });
 
-  // =============================
-  // === Sorting helpers ==========
-  // =============================
+  // ===================================
+  // ===] Sorting helpers [=============
+
   sortArrow(key: SortKey): string {
-    if (this.sortKey() !== key) return '↕';
-    return this.sortOrder() === 'asc' ? '↑' : '↓';
+    const sortable: SortablePair | null = this.sortable();
+    if (!sortable || sortable.key() !== key) return '↕';
+    return sortable.order() === 'asc' ? '↑' : '↓';
   }
 
   sortHeadClass(key: SortKey): string {
-    return this.sortKey() === key ? 'text-iris' : 'hover:text-soft';
+    return this.sortable()?.key() === key ? 'text-iris' : 'hover:text-soft';
   }
 
-  // =============================
-  // === Row casting (union) ======
-  // =============================
+  // ===================================
+  // ===] Row casting (union) [=========
+
   asRow(item: RedemptionRow | GroupedUser): RedemptionRow {
     return item as RedemptionRow;
   }

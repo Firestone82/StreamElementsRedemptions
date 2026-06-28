@@ -8,23 +8,24 @@ import { StoreItem } from '../../../core/models/models';
   templateUrl: './items-list.component.html',
 })
 export class ItemsListComponent {
-  // =============================
-  // === Inputs / Outputs ========
-  // =============================
+
+  // ===================================
+  // ===] Inputs / Outputs [============
+
   readonly items: InputSignal<StoreItem[]> = input<StoreItem[]>([]);
   readonly selectedId: InputSignal<string | null> = input<string | null>(null);
 
   readonly select: OutputEmitterRef<string> = output<string>();
 
-  // =============================
-  // === State ====================
-  // =============================
+  // ===================================
+  // ===] State [=======================
+
   readonly search: WritableSignal<string> = signal<string>('');
   readonly activeOnly: WritableSignal<boolean> = signal<boolean>(false);
 
-  // =============================
-  // === Computed =================
-  // =============================
+  // ===================================
+  // ===] Computed [====================
+
   readonly filteredItems: Signal<StoreItem[]> = computed<StoreItem[]>(() => {
     const query: string = this.search().trim().toLowerCase();
     const activeOnly: boolean = this.activeOnly();

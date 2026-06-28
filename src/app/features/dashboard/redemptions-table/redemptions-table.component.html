@@ -28,12 +28,12 @@
           } @else {
             <tr>
               <th class="py-2.5 pl-4 pr-3 font-medium">
-                <button data-focusable type="button" class="inline-flex items-center gap-1 focus:outline-none {{ sortHeadClass('name') }}" (click)="sortChange.emit('name')">
+                <button data-focusable type="button" class="inline-flex items-center gap-1 focus:outline-none {{ sortHeadClass('name') }}" (click)="sortable()?.toggle('name')">
                   Username <span class="text-[10px]">{{ sortArrow('name') }}</span>
                 </button>
               </th>
               <th class="py-2.5 pr-3 font-medium">
-                <button data-focusable type="button" class="inline-flex items-center gap-1 focus:outline-none {{ sortHeadClass('date') }}" (click)="sortChange.emit('date')">
+                <button data-focusable type="button" class="inline-flex items-center gap-1 focus:outline-none {{ sortHeadClass('date') }}" (click)="sortable()?.toggle('date')">
                   Redeemed at <span class="text-[10px]">{{ sortArrow('date') }}</span>
                 </button>
               </th>
@@ -83,7 +83,7 @@
         data-focusable
         class="rounded-md border border-line bg-raised px-2 py-1 text-text focus:border-iris focus:outline-none"
         [ngModel]="content()?.pageSize ?? 20"
-        (ngModelChange)="pageSizeChange.emit(+$event)"
+        (ngModelChange)="pagination()?.setPageSize(+$event)"
       >
         <option [value]="10">10</option>
         <option [value]="20">20</option>
@@ -98,7 +98,7 @@
           type="button"
           [disabled]="(content()?.offset ?? 0) <= 0"
           class="rounded-md border border-line bg-raised px-2.5 py-1 text-soft transition hover:border-iris disabled:opacity-40 disabled:hover:border-line focus:outline-none"
-          (click)="prevPage.emit()"
+          (click)="pagination()?.prev()"
         >
           Prev
         </button>
@@ -107,7 +107,7 @@
           type="button"
           [disabled]="!(content()?.hasMore ?? false)"
           class="rounded-md border border-line bg-raised px-2.5 py-1 text-soft transition hover:border-iris disabled:opacity-40 disabled:hover:border-line focus:outline-none"
-          (click)="nextPage.emit()"
+          (click)="pagination()?.next()"
         >
           Next
         </button>

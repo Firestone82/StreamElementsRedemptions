@@ -38,8 +38,7 @@
         <app-redemptions-controls
           [grouped]="grouped()"
           [busy]="busy()"
-          [groupSearch]="groupSearch()"
-          (groupSearchChange)="onGroupSearchChange($event)"
+          [filter]="groupFilter"
           (applyRange)="onApplyRange($event)"
           (refresh)="onRefresh()"
           (toggleGroup)="onToggleGroup()"
@@ -48,18 +47,13 @@
       }
 
       <app-redemptions-table
-        [content]="tableContent()"
+        [pagination]="tablePagination"
+        [sortable]="sortable"
         [grouped]="grouped()"
         [busy]="busy()"
         [loadingText]="loadingText()"
         [progressText]="progressText()"
         [progressPct]="progressPct()"
-        [sortKey]="sortKey()"
-        [sortOrder]="sortOrder()"
-        (sortChange)="toggleSort($event)"
-        (prevPage)="onPrev()"
-        (nextPage)="onNext()"
-        (pageSizeChange)="onPageSizeChange($event)"
       />
     </section>
   </main>

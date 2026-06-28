@@ -7,8 +7,8 @@
         type="text"
         placeholder="Search username..."
         class="w-44 rounded-lg border border-line bg-raised px-2.5 py-1.5 text-sm placeholder:text-mut focus:border-iris focus:outline-none"
-        [ngModel]="groupSearch()"
-        (ngModelChange)="groupSearch.set($event)"
+        [ngModel]="filter()?.query() ?? ''"
+        (ngModelChange)="filter()?.setQuery($event)"
       />
     </div>
   }

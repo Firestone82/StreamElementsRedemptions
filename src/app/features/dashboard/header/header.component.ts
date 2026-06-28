@@ -9,14 +9,15 @@ import { Channel } from '../../../core/models/models';
   templateUrl: './header.component.html',
 })
 export class HeaderComponent {
-  // =============================
-  // === Dependencies ============
-  // =============================
+
+  // ===================================
+  // ===] Dependencies [================
+
   protected readonly themeService = inject(ThemeService);
 
-  // =============================
-  // === Inputs / Outputs ========
-  // =============================
+  // ===================================
+  // ===] Inputs / Outputs [============
+
   readonly channelName: InputSignal<string> = input<string>('...');
   readonly availableChannels: InputSignal<Channel[]> = input<Channel[]>([]);
   readonly selectedChannelId: InputSignal<string> = input<string>('');

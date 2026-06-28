@@ -8,7 +8,10 @@ import { isAuthError } from '../../core/services/se-error';
 import { Channel, ExportFormat, GroupedUser, PaginatedContent, RedemptionQuery, RedemptionRow, SortKey, SortOrder, StoreItem } from '../../core/models/models';
 import { AsyncSignal } from '../../core/state/async-signal';
 import { DateRange } from '../../core/state/date-range';
+import { FilterablePair } from '../../core/state/filterable-pair';
 import { Pagination } from '../../core/state/pagination';
+import { PaginationPair } from '../../core/state/pagination-pair';
+import { SortablePair } from '../../core/state/sortable-pair';
 import { HeaderComponent } from './header/header.component';
 import { ItemsListComponent } from './items-list/items-list.component';
 import { RedemptionsControlsComponent } from './redemptions-controls/redemptions-controls.component';
@@ -25,26 +28,27 @@ interface RedemptionsBody {
   templateUrl: './dashboard.component.html',
 })
 export class DashboardComponent implements OnInit, OnDestroy {
-  // =============================
-  // === Dependencies ============
-  // =============================
+
+  // ===================================
+  // ===] Dependencies [================
+
   private readonly authService = inject(AuthService);
   protected readonly streamElementsService = inject(StreamElementsService);
   private readonly exportService = inject(ExportService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
 
-  // =============================
-  // === Async state ==============
-  // =============================
+  // ===================================
+  // ===] Async state [=================
+
   readonly channelAsync: AsyncSignal<Channel | null> = new AsyncSignal<Channel | null>(null);
   readonly itemsAsync: AsyncSignal<StoreItem[]> = new AsyncSignal<StoreItem[]>([]);
   readonly itemDetailAsync: AsyncSignal<StoreItem | null> = new AsyncSignal<StoreItem | null>(null);
   readonly redemptionsAsync: AsyncSignal<RedemptionsBody> = new AsyncSignal<RedemptionsBody>({ rows: [], groups: [] });
 
-  // =============================
-  // === State ====================
-  // =============================
+  // ===================================
+  // ===] State [=======================
+
   readonly banner: WritableSignal<string> = signal<string>('');
 
   readonly items: Signal<StoreItem[]> = this.itemsAsync.body;
@@ -63,9 +67,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
   readonly progressText: WritableSignal<string> = signal<string>('');
   readonly progressPct: WritableSignal<number> = signal<number>(35);
 
-  // =============================
-  // === Computed ==================
-  // =============================
+  // ===================================
+  // ===] Computed [====================
+
   readonly busy: Signal<boolean> = this.redemptionsAsync.busy;
   readonly rows: Signal<RedemptionRow[]> = computed<RedemptionRow[]>(() => this.redemptionsAsync.body().rows);
   readonly groupAll: Signal<GroupedUser[]> = computed<GroupedUser[]>(() => this.redemptionsAsync.body().groups);
@@ -116,9 +120,21 @@ export class DashboardComponent implements OnInit, OnDestroy {
     },
   );
 
-  // =============================
-  // === Lifecycle =================
-  // =============================
+  // ===================================
+  // ===] Pairs [=======================
+
+  readonly sortable: SortablePair = new SortablePair(this.sortKey, this.sortOrder, (key) => this.toggleSort(key));
+  readonly tablePagination: PaginationPair<RedemptionRow | GroupedUser> = new PaginationPair<RedemptionRow | GroupedUser>(
+    this.tableContent,
+    () => this.onPrev(),
+    () => this.onNext(),
+    (size) => this.onPageSizeChange(size),
+  );
+  readonly groupFilter: FilterablePair = new FilterablePair(this.groupSearch, (value) => this.onGroupSearchChange(value));
+
+  // ===================================
+  // ===] Lifecycle [===================
+
   private loadTimer: ReturnType<typeof setInterval> | null = null;
   private liveProgress: boolean = false;
   private routeSub: Subscription | null = null;
@@ -138,9 +154,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.stopProgressTimer();
   }
 
-  // =============================
-  // === Actions ===================
-  // =============================
+  // ===================================
+  // ===] Actions [=====================
+
   async onChannelChange(channelId: string): Promise<void> {
     this.streamElementsService.switchChannel(channelId);
     this.selectedItem.set(null);
@@ -306,9 +322,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
     if (!this.grouped()) void this.loadPage();
   }
 
-  // =============================
-  // === Internals =================
-  // =============================
+  // ===================================
+  // ===] Internals [===================
+
   private buildQuery(item: StoreItem): RedemptionQuery {
     const [from, to]: [string | null, string | null] = this.dateRange.bounds();
     return { itemId: item.id, itemName: item.name, from, to, sortKey: this.sortKey(), order: this.sortOrder() };

@@ -1,4 +1,5 @@
-import { Injectable, Signal, WritableSignal, computed, signal } from '@angular/core';
+import { Injectable, Signal, WritableSignal, computed, inject, signal } from '@angular/core';
+import { Router } from '@angular/router';
 
 const TOKEN_KEY: string = 'se_jwt_token';
 const CHANNEL_OVERRIDE_KEY: string = 'se_channel_override';
@@ -6,6 +7,8 @@ const CHANNEL_OVERRIDE_KEY: string = 'se_channel_override';
 /** Holds the StreamElements JWT and channel override, persisted to localStorage. */
 @Injectable({ providedIn: 'root' })
 export class AuthService {
+  private readonly router = inject(Router);
+
   private readonly tokenSignal: WritableSignal<string> = signal<string>(localStorage.getItem(TOKEN_KEY) ?? '');
   private readonly channelOverrideSignal: WritableSignal<string> = signal<string>(localStorage.getItem(CHANNEL_OVERRIDE_KEY) ?? '');
   private readonly sessionErrorSignal: WritableSignal<string> = signal<string>('');
@@ -36,6 +39,7 @@ export class AuthService {
     localStorage.removeItem(CHANNEL_OVERRIDE_KEY);
     this.tokenSignal.set('');
     this.channelOverrideSignal.set('');
+    void this.router.navigate(['/login']);
   }
 
   /** Logs the user out and leaves a message for the login screen to show once. */
