@@ -1,9 +1,8 @@
 # StreamElements Store Redemptions
 
-A small, fully static (pure HTML/JS, no backend) site to browse your
-StreamElements store items and inspect the redemptions for any single item —
-paginated, filterable by date, sortable, groupable per user, and exportable to
-CSV or TXT.
+An Angular single-page app (no backend) to browse your StreamElements store
+items and inspect the redemptions for any single item — paginated, filterable
+by date, sortable, groupable per user, and exportable to CSV or TXT.
 
 There is no server. The page calls `api.streamelements.com` directly from
 your browser using your personal StreamElements token, which you paste once
@@ -37,15 +36,16 @@ into a login screen. The token is stored only in this browser's
 
 ## Running locally
 
-No build step or install needed — it's plain HTML/JS. Serve the `public/`
-folder with any static file server, e.g.:
-
 ```bash
-cd public
-python3 -m http.server 8000   # or: npx serve
+npm install
+npm start   # ng serve, dev server on http://localhost:4200
 ```
 
-Then open <http://127.0.0.1:8000>.
+To produce a production build:
+
+```bash
+npm run build   # output in dist/se-redemptions/browser
+```
 
 ## Security
 

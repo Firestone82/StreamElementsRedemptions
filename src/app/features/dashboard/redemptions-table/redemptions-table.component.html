@@ -1,0 +1,117 @@
+<div class="relative min-h-[320px]">
+  @if (busy()) {
+    <div class="absolute inset-0 z-10 grid place-items-center bg-panel/80 backdrop-blur-sm">
+      <div class="flex flex-col items-center gap-3 text-center">
+        <span class="h-5 w-5 animate-spin rounded-full border-2 border-line border-t-iris"></span>
+        <div>
+          <p class="text-sm text-soft">{{ loadingText() }}</p>
+          <p class="mt-1 font-mono text-xs text-mut tnum">{{ progressText() }}</p>
+        </div>
+        <div class="h-1 w-48 overflow-hidden rounded-full bg-line">
+          <div class="h-full rounded-full bg-iris transition-all" [style.width.%]="progressPct()"></div>
+        </div>
+      </div>
+    </div>
+  }
+
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      @if (!showPlaceholder()) {
+        <thead class="border-b border-line text-left text-xs uppercase tracking-wide text-mut">
+          @if (grouped()) {
+            <tr>
+              <th class="py-2.5 pl-4 pr-3 font-medium">Username</th>
+              <th class="py-2.5 pr-3 font-medium">Count</th>
+              <th class="py-2.5 pr-3 font-medium">First redeemed</th>
+              <th class="py-2.5 pr-4 font-medium">Last redeemed</th>
+            </tr>
+          } @else {
+            <tr>
+              <th class="py-2.5 pl-4 pr-3 font-medium">
+                <button data-focusable type="button" class="inline-flex items-center gap-1 focus:outline-none {{ sortHeadClass('name') }}" (click)="sortChange.emit('name')">
+                  Username <span class="text-[10px]">{{ sortArrow('name') }}</span>
+                </button>
+              </th>
+              <th class="py-2.5 pr-3 font-medium">
+                <button data-focusable type="button" class="inline-flex items-center gap-1 focus:outline-none {{ sortHeadClass('date') }}" (click)="sortChange.emit('date')">
+                  Redeemed at <span class="text-[10px]">{{ sortArrow('date') }}</span>
+                </button>
+              </th>
+              <th class="py-2.5 pr-4 font-medium">Input</th>
+            </tr>
+          }
+        </thead>
+
+        <tbody>
+          @if (grouped()) {
+            @for (group of groups(); track group.username) {
+              <tr class="border-b border-line/50 hover:bg-raised/60">
+                <td class="py-2.5 pl-4 pr-3 font-medium">{{ group.username }}</td>
+                <td class="py-2.5 pr-3">
+                  <span class="inline-flex min-w-[2rem] justify-center rounded-md bg-iris/15 px-2 py-0.5 font-mono tnum text-iris">{{ group.count }}</span>
+                </td>
+                <td class="py-2.5 pr-3 font-mono tnum text-soft">{{ formatDateTime(group.firstRedeemed) }}</td>
+                <td class="py-2.5 pr-4 font-mono tnum text-soft">{{ formatDateTime(group.lastRedeemed) }}</td>
+              </tr>
+            }
+          } @else {
+            @for (row of rows(); track row.id) {
+              <tr class="border-b border-line/50 hover:bg-raised/60">
+                <td class="py-2.5 pl-4 pr-3 font-medium">{{ row.username || '(unknown)' }}</td>
+                <td class="py-2.5 pr-3 font-mono tnum text-soft">{{ formatDateTime(row.redeemedAt) }}</td>
+                <td class="py-2.5 pr-4 text-mut">{{ row.input || '—' }}</td>
+              </tr>
+            }
+          }
+        </tbody>
+      }
+    </table>
+  </div>
+
+  @if (showPlaceholder()) {
+    <p class="px-4 py-20 text-center text-sm text-mut">Pick a store item on the left to begin.</p>
+  } @else if (isEmpty()) {
+    <p class="px-4 py-20 text-center text-sm text-mut">No redemptions for this item in the selected range.</p>
+  }
+</div>
+
+@if (showPager()) {
+  <div class="flex flex-wrap items-center justify-between gap-3 border-t border-line px-4 py-3 text-sm">
+    <div class="flex items-center gap-2 text-mut">
+      <span>Rows per page</span>
+      <select
+        data-focusable
+        class="rounded-md border border-line bg-raised px-2 py-1 text-text focus:border-iris focus:outline-none"
+        [ngModel]="pageSize()"
+        (ngModelChange)="pageSizeChange.emit(+$event)"
+      >
+        <option [value]="10">10</option>
+        <option [value]="20">20</option>
+      </select>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <span class="font-mono tnum text-soft">{{ rangeLabel() }}</span>
+      <div class="flex gap-1">
+        <button
+          data-focusable
+          type="button"
+          [disabled]="prevDisabled()"
+          class="rounded-md border border-line bg-raised px-2.5 py-1 text-soft transition hover:border-iris disabled:opacity-40 disabled:hover:border-line focus:outline-none"
+          (click)="prevPage.emit()"
+        >
+          Prev
+        </button>
+        <button
+          data-focusable
+          type="button"
+          [disabled]="nextDisabled()"
+          class="rounded-md border border-line bg-raised px-2.5 py-1 text-soft transition hover:border-iris disabled:opacity-40 disabled:hover:border-line focus:outline-none"
+          (click)="nextPage.emit()"
+        >
+          Next
+        </button>
+      </div>
+    </div>
+  </div>
+}

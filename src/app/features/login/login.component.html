@@ -1,0 +1,48 @@
+<div class="grid min-h-screen place-items-center px-4">
+  <div class="w-full max-w-md rounded-xl border border-line bg-panel p-6">
+    <p class="mt-1 text-xl font-semibold tracking-tight">Connect your account</p>
+
+    <p class="mt-3 text-sm text-soft">
+      Paste your personal StreamElements JWT token. It's used only in this browser to call the StreamElements API
+      directly — it is never sent anywhere else and is stored only in this browser's local storage.
+    </p>
+
+    <form class="mt-5 space-y-3" (ngSubmit)="submit()">
+      <div>
+        <label class="text-xs text-mut" for="loginToken">JWT token</label>
+        <input
+          id="loginToken"
+          name="loginToken"
+          data-focusable
+          type="password"
+          autocomplete="off"
+          required
+          placeholder="eyJhbGciOi…"
+          class="mt-1 w-full rounded-lg border border-line bg-raised px-3 py-2 text-sm placeholder:text-mut focus:border-iris focus:outline-none"
+          [ngModel]="token()"
+          (ngModelChange)="token.set($event)"
+        />
+      </div>
+
+      <p class="text-xs text-mut">
+        Get it from
+        <a class="text-iris hover:underline" href="https://streamelements.com/dashboard/account/channels" target="_blank" rel="noopener">
+          streamelements.com/dashboard/account/channels
+        </a>
+      </p>
+
+      @if (errorMessage()) {
+        <p class="rounded-lg border border-amber/40 bg-amber/10 px-3 py-2 text-sm text-amber">{{ errorMessage() }}</p>
+      }
+
+      <button
+        data-focusable
+        type="submit"
+        [disabled]="connecting()"
+        class="w-full rounded-lg bg-iris px-3.5 py-2 text-sm font-medium text-white transition hover:bg-iris-dim focus:outline-none disabled:opacity-60"
+      >
+        {{ connecting() ? 'Connecting…' : 'Connect' }}
+      </button>
+    </form>
+  </div>
+</div>

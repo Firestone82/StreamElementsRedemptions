@@ -1,0 +1,57 @@
+<section class="rounded-xl border border-line bg-panel">
+  <div class="flex items-center justify-between border-b border-line px-4 py-3">
+    <h2 class="text-sm font-semibold">Store items</h2>
+    <span class="font-mono text-xs text-mut">{{ filteredItems().length }}/{{ items().length }}</span>
+  </div>
+
+  <div class="space-y-3 px-4 py-3">
+    <input
+      data-focusable
+      type="text"
+      placeholder="Filter items…"
+      class="w-full rounded-lg border border-line bg-raised px-3 py-2 text-sm placeholder:text-mut focus:border-iris focus:outline-none"
+      [ngModel]="search()"
+      (ngModelChange)="search.set($event)"
+    />
+
+    <label class="flex cursor-pointer select-none items-center gap-2 text-sm text-soft">
+      <input data-focusable type="checkbox" class="peer sr-only" [ngModel]="activeOnly()" (ngModelChange)="activeOnly.set($event)" />
+      <span class="relative h-5 w-9 rounded-full bg-line transition peer-checked:bg-iris">
+        <span class="absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white transition peer-checked:translate-x-4"></span>
+      </span>
+      Active items only
+    </label>
+  </div>
+
+  <div class="max-h-[70vh] overflow-y-auto border-t border-line">
+    <table class="w-full text-sm">
+      <tbody>
+        @for (item of filteredItems(); track item.id) {
+          <tr
+            tabindex="0"
+            data-focusable
+            class="cursor-pointer border-b border-line/60 transition hover:bg-raised"
+            [class.bg-raised]="selectedId() === item.id"
+            (click)="select.emit(item.id)"
+            (keydown.enter)="select.emit(item.id)"
+            (keydown.space)="$event.preventDefault(); select.emit(item.id)"
+          >
+            <td class="py-2.5 pl-4 pr-2 align-middle">
+              <span
+                class="inline-block h-2 w-2 rounded-full"
+                [class.bg-mint]="item.enabled"
+                [class.bg-line]="!item.enabled"
+                [title]="item.enabled ? 'Active' : 'Inactive'"
+              ></span>
+            </td>
+            <td class="py-2.5 pr-4 font-medium" [class.text-iris]="selectedId() === item.id">{{ item.name }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+
+    @if (filteredItems().length === 0) {
+      <p class="px-4 py-10 text-center text-sm text-mut">No items match.</p>
+    }
+  </div>
+</section>

@@ -1,0 +1,44 @@
+<header class="flex flex-wrap items-end justify-between gap-4 border-b border-line py-5">
+  <div>
+    <h1 class="font-mono text-sm font-medium tracking-[0.2em] text-mut uppercase">StreamElements</h1>
+    <p class="mt-1 text-2xl font-semibold tracking-tight">Store Redemptions</p>
+  </div>
+
+  <div class="flex items-center gap-3 text-sm">
+    <span class="text-mut">Channel</span>
+
+    @if (availableChannels().length > 1) {
+      <select
+        data-focusable
+        class="font-mono rounded-md border border-line bg-panel px-2.5 py-1 text-soft focus:border-iris focus:outline-none"
+        [ngModel]="selectedChannelId()"
+        (ngModelChange)="channelChange.emit($event)"
+      >
+        @for (channel of availableChannels(); track channel.id) {
+          <option [value]="channel.id">{{ channel.name }}</option>
+        }
+      </select>
+    } @else {
+      <span class="font-mono rounded-md border border-line bg-panel px-2.5 py-1 text-soft">{{ channelName() }}</span>
+    }
+
+    <button
+      data-focusable
+      type="button"
+      [title]="'Theme: ' + (theme.mode() ?? 'system') + ' (click to change)'"
+      class="rounded-lg border border-line bg-raised px-3 py-1.5 text-sm text-soft transition hover:border-iris hover:text-text focus:outline-none"
+      (click)="theme.cycle()"
+    >
+      {{ theme.label() }}
+    </button>
+
+    <button
+      data-focusable
+      type="button"
+      class="rounded-lg border border-line bg-raised px-3 py-1.5 text-sm text-soft transition hover:border-amber hover:text-amber focus:outline-none"
+      (click)="disconnect.emit()"
+    >
+      Disconnect
+    </button>
+  </div>
+</header>

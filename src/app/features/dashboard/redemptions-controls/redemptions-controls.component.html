@@ -1,0 +1,92 @@
+<div class="flex flex-wrap items-end gap-4 border-b border-line px-4 py-3">
+  @if (grouped()) {
+    <div class="flex flex-col gap-1">
+      <label class="text-xs text-mut">Username</label>
+      <input
+        data-focusable
+        type="text"
+        placeholder="Search username…"
+        class="w-44 rounded-lg border border-line bg-raised px-2.5 py-1.5 text-sm placeholder:text-mut focus:border-iris focus:outline-none"
+        [ngModel]="groupSearch()"
+        (ngModelChange)="groupSearch.set($event)"
+      />
+    </div>
+  }
+
+  <div class="flex flex-col gap-1">
+    <label class="text-xs text-mut">From</label>
+    <input
+      data-focusable
+      type="date"
+      class="rounded-lg border border-line bg-raised px-2.5 py-1.5 text-sm focus:border-iris focus:outline-none"
+      [ngModel]="fromDate()"
+      (ngModelChange)="fromDate.set($event)"
+    />
+  </div>
+
+  <div class="flex flex-col gap-1">
+    <label class="text-xs text-mut">To</label>
+    <input
+      data-focusable
+      type="date"
+      class="rounded-lg border border-line bg-raised px-2.5 py-1.5 text-sm focus:border-iris focus:outline-none"
+      [ngModel]="toDate()"
+      (ngModelChange)="toDate.set($event)"
+    />
+  </div>
+
+  <button
+    data-focusable
+    type="button"
+    class="rounded-lg bg-iris px-3.5 py-1.5 text-sm font-medium text-white transition hover:bg-iris-dim focus:outline-none"
+    (click)="apply()"
+  >
+    Apply range
+  </button>
+
+  <button
+    data-focusable
+    type="button"
+    [disabled]="busy()"
+    class="rounded-lg border border-line bg-raised px-3 py-1.5 text-sm text-soft transition hover:border-iris hover:text-text focus:outline-none disabled:opacity-50"
+    (click)="refresh.emit()"
+  >
+    Refresh
+  </button>
+
+  <div class="ml-auto flex flex-wrap items-center gap-2">
+    <button
+      data-focusable
+      type="button"
+      class="rounded-lg border border-iris/50 bg-iris/10 px-3 py-1.5 text-sm font-medium text-iris transition hover:bg-iris/20 focus:outline-none"
+      (click)="toggleGroup.emit()"
+    >
+      {{ grouped() ? 'Show all entries' : 'Group by name' }}
+    </button>
+
+    <div class="relative">
+      <button
+        data-focusable
+        type="button"
+        class="rounded-lg border border-line bg-raised px-3 py-1.5 text-sm text-soft transition hover:border-mint hover:text-mint focus:outline-none"
+        (click)="toggleExportMenu($event)"
+      >
+        Export ▾
+      </button>
+
+      @if (exportMenuOpen()) {
+        <div class="absolute right-0 z-20 mt-1 w-44 overflow-hidden rounded-lg border border-line bg-raised shadow-xl">
+          <p class="border-b border-line px-3 py-2 text-[11px] uppercase tracking-wide text-mut">
+            {{ grouped() ? 'Export grouped view' : 'Export all entries' }}
+          </p>
+          <button type="button" class="block w-full px-3 py-2 text-left text-sm hover:bg-iris/15 hover:text-iris" (click)="doExport('csv')">
+            As CSV
+          </button>
+          <button type="button" class="block w-full px-3 py-2 text-left text-sm hover:bg-iris/15 hover:text-iris" (click)="doExport('txt')">
+            As TXT
+          </button>
+        </div>
+      }
+    </div>
+  </div>
+</div>

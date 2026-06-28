@@ -1,0 +1,80 @@
+@import 'tailwindcss';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+  --color-ink: rgb(var(--ink));
+  --color-panel: rgb(var(--panel));
+  --color-raised: rgb(var(--raised));
+  --color-line: rgb(var(--line));
+  --color-mut: rgb(var(--mut));
+  --color-soft: rgb(var(--soft));
+  --color-text: rgb(var(--text));
+  --color-iris: rgb(var(--iris));
+  --color-iris-dim: rgb(var(--iris-dim));
+  --color-mint: rgb(var(--mint));
+  --color-amber: rgb(var(--amber));
+}
+
+:root {
+  --ink: 245 246 250;
+  --panel: 255 255 255;
+  --raised: 241 242 246;
+  --line: 226 228 234;
+  --mut: 107 114 128;
+  --soft: 55 65 81;
+  --text: 17 24 39;
+  --iris: 109 91 208;
+  --iris-dim: 91 79 199;
+  --mint: 14 168 118;
+  --amber: 180 120 30;
+}
+
+html.dark {
+  --ink: 11 13 18;
+  --panel: 19 22 31;
+  --raised: 26 30 42;
+  --line: 39 44 58;
+  --mut: 139 148 167;
+  --soft: 174 182 198;
+  --text: 231 233 240;
+  --iris: 124 108 240;
+  --iris-dim: 91 79 199;
+  --mint: 45 212 167;
+  --amber: 224 162 60;
+}
+
+html,
+body {
+  background: rgb(var(--ink));
+}
+
+body {
+  @apply font-sans text-text antialiased selection:bg-iris/30;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgb(var(--line));
+  border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgb(var(--soft));
+}
+
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+[data-focusable]:focus-visible {
+  outline: 2px solid rgb(var(--iris));
+  outline-offset: 2px;
+  border-radius: 6px;
+}

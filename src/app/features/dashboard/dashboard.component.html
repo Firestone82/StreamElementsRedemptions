@@ -1,0 +1,77 @@
+<div class="mx-auto max-w-[1500px] px-4 sm:px-6 lg:px-8">
+  <app-header
+    [channelName]="channelName()"
+    [availableChannels]="availableChannels()"
+    [selectedChannelId]="channelId()"
+    (channelChange)="onChannelChange($event)"
+    (disconnect)="onDisconnect()"
+  />
+
+  @if (banner()) {
+    <div class="mt-4 rounded-lg border border-amber/40 bg-amber/10 px-4 py-3 text-sm text-amber">{{ banner() }}</div>
+  }
+
+  <main class="grid grid-cols-1 gap-6 py-6 lg:grid-cols-[340px_1fr]">
+    <app-items-list [items]="items()" [selectedId]="selectedItem()?.id ?? null" (select)="selectItem($event)" />
+
+    <section class="rounded-xl border border-line bg-panel">
+      <div class="flex flex-wrap items-center justify-between gap-3 border-b border-line px-4 py-3">
+        <div>
+          <h2 class="text-sm font-semibold">{{ selectedItem()?.name ?? 'Redemptions' }}</h2>
+          <p class="mt-0.5 text-xs text-mut">
+            {{ selectedItem() ? (selectedItem()!.enabled ? 'Active item' : 'Inactive item') : 'Select an item to load its redemptions.' }}
+          </p>
+          @if (selectedItemDetail()) {
+            <p class="mt-1 font-mono text-xs text-soft">
+              Price: {{ selectedItemDetail()!.cost ?? '—' }} · Purchased: {{ selectedItemDetail()!.currentlyPurchased ?? '—' }} · Remaining:
+              {{ selectedItemDetail()!.remaining ?? '—' }}
+            </p>
+          }
+        </div>
+
+        @if (detailStats()) {
+          <div class="font-mono text-xs text-soft">{{ detailStats() }}</div>
+        }
+      </div>
+
+      @if (selectedItem()) {
+        <app-redemptions-controls
+          [grouped]="grouped()"
+          [busy]="busy()"
+          [groupSearch]="groupSearch()"
+          (groupSearchChange)="onGroupSearchChange($event)"
+          (applyRange)="onApplyRange($event)"
+          (refresh)="onRefresh()"
+          (toggleGroup)="onToggleGroup()"
+          (export)="onExport($event)"
+        />
+      }
+
+      <app-redemptions-table
+        [grouped]="grouped()"
+        [busy]="busy()"
+        [loadingText]="loadingText()"
+        [progressText]="progressText()"
+        [progressPct]="progressPct()"
+        [showPlaceholder]="showPlaceholder()"
+        [rows]="rows()"
+        [groups]="groupPageRows()"
+        [sortKey]="sortKey()"
+        [sortOrder]="sortOrder()"
+        [showPager]="showPager()"
+        [rangeLabel]="rangeLabel()"
+        [pageSize]="currentPageSize()"
+        [prevDisabled]="prevDisabled()"
+        [nextDisabled]="nextDisabled()"
+        (sortChange)="toggleSort($event)"
+        (prevPage)="onPrev()"
+        (nextPage)="onNext()"
+        (pageSizeChange)="onPageSizeChange($event)"
+      />
+    </section>
+  </main>
+
+  <footer class="border-t border-line py-4 text-center text-xs text-mut">
+    Your token is stored only in this browser's local storage and calls the StreamElements API directly.
+  </footer>
+</div>
