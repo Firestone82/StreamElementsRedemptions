@@ -1,5 +1,5 @@
 import { HttpClient, HttpErrorResponse, HttpParams } from '@angular/common/http';
-import { Injectable, inject, signal } from '@angular/core';
+import { Injectable, WritableSignal, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import {
   Channel,
@@ -20,14 +20,14 @@ import {
 import { AuthService } from './auth.service';
 import { SEError } from './se-error';
 
-const API_BASE = 'https://api.streamelements.com/kappa/v2';
-const SE_PAGE_SIZE = 10000;
-const CACHE_TTL_MS = 120000;
+const API_BASE: string = 'https://api.streamelements.com/kappa/v2';
+const SE_PAGE_SIZE: number = 10000;
+const CACHE_TTL_MS: number = 120000;
 
 function mapItem(raw: SeStoreItem): StoreItem {
-  const total = raw.quantity?.total ?? null;
-  const current = raw.quantity?.current ?? null;
-  const purchased = total != null && current != null ? total - current : null;
+  const total: number | null = raw.quantity?.total ?? null;
+  const current: number | null = raw.quantity?.current ?? null;
+  const purchased: number | null = total != null && current != null ? total - current : null;
 
   return {
     id: raw._id,
@@ -50,22 +50,22 @@ function mapItem(raw: SeStoreItem): StoreItem {
  */
 @Injectable({ providedIn: 'root' })
 export class StreamElementsService {
-  private readonly http = inject(HttpClient);
-  private readonly auth = inject(AuthService);
+  private readonly httpClient = inject(HttpClient);
+  private readonly authService = inject(AuthService);
 
-  readonly availableChannels = signal<Channel[]>([]);
+  readonly availableChannels: WritableSignal<Channel[]> = signal<Channel[]>([]);
 
   private channelCache: Channel | null = null;
   private selfChannel: Channel | null = null;
   private readonly accCache = new Map<string, RedemptionAccumulator>();
 
   async connect(token: string): Promise<void> {
-    this.auth.setToken(token);
+    this.authService.setToken(token);
     this.resetClientState();
     try {
       await this.seGet('/channels/me');
     } catch (err) {
-      this.auth.clear();
+      this.authService.clear();
       throw err;
     }
   }
@@ -78,22 +78,22 @@ export class StreamElementsService {
   }
 
   switchChannel(channelId: string): void {
-    this.auth.setChannelOverride(channelId);
+    this.authService.setChannelOverride(channelId);
     this.channelCache = null;
     this.accCache.clear();
   }
 
-  async getChannel(force = false): Promise<Channel> {
+  async getChannel(force: boolean = false): Promise<Channel> {
     if (this.channelCache && !force) return this.channelCache;
 
-    const overrideId = this.auth.channelOverride;
+    const overrideId: string = this.authService.channelOverride;
     if (overrideId) {
-      const known = this.availableChannels().find((c) => c.id === overrideId);
+      const known: Channel | undefined = this.availableChannels().find((c) => c.id === overrideId);
       this.channelCache = { id: overrideId, name: known?.name ?? overrideId };
     } else if (this.selfChannel) {
       this.channelCache = { ...this.selfChannel };
     } else {
-      const me = await this.seGet<SeChannelLike & { _id: string }>('/channels/me');
+      const me: SeChannelLike & { _id: string } = await this.seGet<SeChannelLike & { _id: string }>('/channels/me');
       this.channelCache = { id: me._id, name: me.displayName || me.username || me._id };
     }
 
@@ -114,7 +114,7 @@ export class StreamElementsService {
     }
 
     try {
-      const me = await this.seGet<SeChannelLike & { _id: string }>('/channels/me');
+      const me: SeChannelLike & { _id: string } = await this.seGet<SeChannelLike & { _id: string }>('/channels/me');
       this.selfChannel = { id: me._id, name: me.displayName || me.username || me._id };
       if (this.selfChannel.id && !list.some((c) => c.id === this.selfChannel!.id)) {
         list.unshift(this.selfChannel);
@@ -127,16 +127,16 @@ export class StreamElementsService {
   }
 
   async getItems(): Promise<StoreItem[]> {
-    const channel = (await this.getChannel()).id;
-    const raw = await this.seGet<SeStoreItem[]>(`/store/${channel}/items`, { source: 'all', limit: 1000 });
-    const items = (raw ?? []).map(mapItem);
+    const channel: string = (await this.getChannel()).id;
+    const raw: SeStoreItem[] = await this.seGet<SeStoreItem[]>(`/store/${channel}/items`, { source: 'all', limit: 1000 });
+    const items: StoreItem[] = (raw ?? []).map(mapItem);
     items.sort((a, b) => (a.enabled === b.enabled ? a.name.localeCompare(b.name) : a.enabled ? -1 : 1));
     return items;
   }
 
   async getItemDetail(itemId: string): Promise<StoreItem> {
-    const channel = (await this.getChannel()).id;
-    const raw = await this.seGet<SeStoreItem>(`/store/${channel}/items/${itemId}`);
+    const channel: string = (await this.getChannel()).id;
+    const raw: SeStoreItem = await this.seGet<SeStoreItem>(`/store/${channel}/items/${itemId}`);
     return mapItem(raw);
   }
 
@@ -148,11 +148,11 @@ export class StreamElementsService {
     to: string | null,
     sortKey: SortKey,
     order: SortOrder,
-    refresh = false,
+    refresh: boolean = false,
   ): Promise<{ channel: string; acc: RedemptionAccumulator }> {
-    const channel = (await this.getChannel()).id;
-    const key = this.accKey(channel, itemId, from, to, sortKey, order);
-    let acc = this.accCache.get(key);
+    const channel: string = (await this.getChannel()).id;
+    const key: string = this.accKey(channel, itemId, from, to, sortKey, order);
+    let acc: RedemptionAccumulator | undefined = this.accCache.get(key);
 
     if (!acc || refresh || Date.now() - acc.ts > CACHE_TTL_MS) {
       acc = this.newAcc(itemName);
@@ -201,15 +201,15 @@ export class StreamElementsService {
     const groups = new Map<string, GroupedUser>();
 
     for (const row of rows) {
-      const name = row.username || '(unknown)';
-      let group = groups.get(name);
+      const name: string = row.username || '(unknown)';
+      let group: GroupedUser | undefined = groups.get(name);
       if (!group) {
         group = { username: name, count: 0, firstRedeemed: null, lastRedeemed: null };
         groups.set(name, group);
       }
 
       group.count += 1;
-      const ts = row.redeemedAt;
+      const ts: string | null = row.redeemedAt;
       if (ts) {
         if (!group.firstRedeemed || ts < group.firstRedeemed) group.firstRedeemed = ts;
         if (!group.lastRedeemed || ts > group.lastRedeemed) group.lastRedeemed = ts;
@@ -234,7 +234,7 @@ export class StreamElementsService {
 
     for (const entry of entries) {
       const ch: SeChannelLike | undefined = typeof entry === 'string' ? { _id: entry } : entry.channel ?? entry;
-      const id = ch?._id ?? ch?.id;
+      const id: string | undefined = ch?._id ?? ch?.id;
       if (!id) continue;
       list.push({ id, name: ch.displayName || ch.username || ch.name || id });
     }
@@ -247,7 +247,7 @@ export class StreamElementsService {
   }
 
   private newAcc(itemName: string): RedemptionAccumulator {
-    const nameSearch = itemName && !itemName.includes(' ') ? itemName : null;
+    const nameSearch: string | null = itemName && !itemName.includes(' ') ? itemName : null;
     return { rows: [], nextOffset: 0, scanned: 0, pages: 0, exhausted: false, nameSearch, filterLocked: false, ts: Date.now() };
   }
 
@@ -282,9 +282,9 @@ export class StreamElementsService {
   ): Promise<void> {
     if (acc.exhausted) return;
 
-    const data = await this.seSearchPage(channel, acc, from, to, sortKey, order);
-    const docs = data.docs ?? [];
-    const total = data._total;
+    const data: SeRedemptionSearchResponse = await this.seSearchPage(channel, acc, from, to, sortKey, order);
+    const docs: SeRedemptionDoc[] = data.docs ?? [];
+    const total: number | undefined = data._total;
 
     for (const doc of docs) {
       if (!this.matchesItem(doc, itemId, itemName)) continue;
@@ -320,9 +320,9 @@ export class StreamElementsService {
     if (from) base['from'] = from;
     if (to) base['to'] = to;
 
-    const field = sortKey === 'name' ? 'redeemer.username' : 'updatedAt';
-    const direction = order === 'asc' ? 1 : -1;
-    const sorts = [JSON.stringify({ [field]: direction }), field];
+    const field: string = sortKey === 'name' ? 'redeemer.username' : 'updatedAt';
+    const direction: number = order === 'asc' ? 1 : -1;
+    const sorts: string[] = [JSON.stringify({ [field]: direction }), field];
 
     const attempts: [Record<string, string | number>, boolean][] = [];
     for (const sort of sorts) {
@@ -333,7 +333,7 @@ export class StreamElementsService {
     let lastErr: unknown = null;
     for (const [params, usedFilter] of attempts) {
       try {
-        const data = await this.seGet<SeRedemptionSearchResponse>(`/store/${channel}/redemptions/search`, params);
+        const data: SeRedemptionSearchResponse = await this.seGet<SeRedemptionSearchResponse>(`/store/${channel}/redemptions/search`, params);
         if (!acc.filterLocked) {
           if (acc.nameSearch && !usedFilter) acc.nameSearch = null;
           acc.filterLocked = true;
@@ -348,7 +348,7 @@ export class StreamElementsService {
   }
 
   private async seGet<T>(path: string, params?: Record<string, string | number | undefined | null>): Promise<T> {
-    let httpParams = new HttpParams();
+    let httpParams: HttpParams = new HttpParams();
     if (params) {
       for (const [key, value] of Object.entries(params)) {
         if (value !== undefined && value !== null && value !== '') httpParams = httpParams.set(key, value);
@@ -357,9 +357,9 @@ export class StreamElementsService {
 
     try {
       return await firstValueFrom(
-        this.http.get<T>(`${API_BASE}${path}`, {
+        this.httpClient.get<T>(`${API_BASE}${path}`, {
           params: httpParams,
-          headers: { Accept: 'application/json', Authorization: `Bearer ${this.auth.token}` },
+          headers: { Accept: 'application/json', Authorization: `Bearer ${this.authService.token}` },
         }),
       );
     } catch (err) {
@@ -372,7 +372,7 @@ export class StreamElementsService {
       if (err.status === 401 || err.status === 403) {
         return new SEError('StreamElements rejected the token (401/403). Please reconnect.', err.status);
       }
-      const detail = typeof err.error === 'string' ? err.error : JSON.stringify(err.error ?? err.message ?? '');
+      const detail: string = typeof err.error === 'string' ? err.error : JSON.stringify(err.error ?? err.message ?? '');
       return new SEError(`StreamElements returned ${err.status}: ${detail.slice(0, 300)}`, err.status || 502);
     }
     if (err instanceof SEError) return err;

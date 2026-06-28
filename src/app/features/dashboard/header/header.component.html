@@ -25,11 +25,11 @@
     <button
       data-focusable
       type="button"
-      [title]="'Theme: ' + (theme.mode() ?? 'system') + ' (click to change)'"
+      [title]="'Theme: ' + (themeService.mode() ?? 'system') + ' (click to change)'"
       class="rounded-lg border border-line bg-raised px-3 py-1.5 text-sm text-soft transition hover:border-iris hover:text-text focus:outline-none"
-      (click)="theme.cycle()"
+      (click)="themeService.cycle()"
     >
-      {{ theme.label() }}
+      {{ themeService.label() }}
     </button>
 
     <button

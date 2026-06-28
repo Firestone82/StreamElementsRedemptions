@@ -1,16 +1,16 @@
-import { Injectable, computed, signal } from '@angular/core';
+import { Injectable, Signal, WritableSignal, computed, signal } from '@angular/core';
 
-const TOKEN_KEY = 'se_jwt_token';
-const CHANNEL_OVERRIDE_KEY = 'se_channel_override';
+const TOKEN_KEY: string = 'se_jwt_token';
+const CHANNEL_OVERRIDE_KEY: string = 'se_channel_override';
 
 /** Holds the StreamElements JWT and channel override, persisted to localStorage. */
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private readonly tokenSignal = signal(localStorage.getItem(TOKEN_KEY) ?? '');
-  private readonly channelOverrideSignal = signal(localStorage.getItem(CHANNEL_OVERRIDE_KEY) ?? '');
-  private readonly sessionErrorSignal = signal('');
+  private readonly tokenSignal: WritableSignal<string> = signal<string>(localStorage.getItem(TOKEN_KEY) ?? '');
+  private readonly channelOverrideSignal: WritableSignal<string> = signal<string>(localStorage.getItem(CHANNEL_OVERRIDE_KEY) ?? '');
+  private readonly sessionErrorSignal: WritableSignal<string> = signal<string>('');
 
-  readonly loggedIn = computed(() => !!this.tokenSignal());
+  readonly loggedIn: Signal<boolean> = computed<boolean>(() => !!this.tokenSignal());
 
   get token(): string {
     return this.tokenSignal();
@@ -21,7 +21,7 @@ export class AuthService {
   }
 
   setToken(value: string): void {
-    const trimmed = value.trim();
+    const trimmed: string = value.trim();
     trimmed ? localStorage.setItem(TOKEN_KEY, trimmed) : localStorage.removeItem(TOKEN_KEY);
     this.tokenSignal.set(trimmed);
   }
@@ -45,7 +45,7 @@ export class AuthService {
   }
 
   consumeSessionError(): string {
-    const message = this.sessionErrorSignal();
+    const message: string = this.sessionErrorSignal();
     this.sessionErrorSignal.set('');
     return message;
   }

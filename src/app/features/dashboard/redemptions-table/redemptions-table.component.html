@@ -44,22 +44,22 @@
 
         <tbody>
           @if (grouped()) {
-            @for (group of groups(); track group.username) {
+            @for (item of content()?.items ?? []; track $index) {
               <tr class="border-b border-line/50 hover:bg-raised/60">
-                <td class="py-2.5 pl-4 pr-3 font-medium">{{ group.username }}</td>
+                <td class="py-2.5 pl-4 pr-3 font-medium">{{ asGroup(item).username }}</td>
                 <td class="py-2.5 pr-3">
-                  <span class="inline-flex min-w-[2rem] justify-center rounded-md bg-iris/15 px-2 py-0.5 font-mono tnum text-iris">{{ group.count }}</span>
+                  <span class="inline-flex min-w-[2rem] justify-center rounded-md bg-iris/15 px-2 py-0.5 font-mono tnum text-iris">{{ asGroup(item).count }}</span>
                 </td>
-                <td class="py-2.5 pr-3 font-mono tnum text-soft">{{ formatDateTime(group.firstRedeemed) }}</td>
-                <td class="py-2.5 pr-4 font-mono tnum text-soft">{{ formatDateTime(group.lastRedeemed) }}</td>
+                <td class="py-2.5 pr-3 font-mono tnum text-soft">{{ asGroup(item).firstRedeemed | formatDateTime }}</td>
+                <td class="py-2.5 pr-4 font-mono tnum text-soft">{{ asGroup(item).lastRedeemed | formatDateTime }}</td>
               </tr>
             }
           } @else {
-            @for (row of rows(); track row.id) {
+            @for (item of content()?.items ?? []; track $index) {
               <tr class="border-b border-line/50 hover:bg-raised/60">
-                <td class="py-2.5 pl-4 pr-3 font-medium">{{ row.username || '(unknown)' }}</td>
-                <td class="py-2.5 pr-3 font-mono tnum text-soft">{{ formatDateTime(row.redeemedAt) }}</td>
-                <td class="py-2.5 pr-4 text-mut">{{ row.input || '—' }}</td>
+                <td class="py-2.5 pl-4 pr-3 font-medium">{{ asRow(item).username || '(unknown)' }}</td>
+                <td class="py-2.5 pr-3 font-mono tnum text-soft">{{ asRow(item).redeemedAt | formatDateTime }}</td>
+                <td class="py-2.5 pr-4 text-mut">{{ asRow(item).input || '—' }}</td>
               </tr>
             }
           }

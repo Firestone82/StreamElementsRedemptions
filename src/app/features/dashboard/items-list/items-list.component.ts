@@ -1,4 +1,4 @@
-import { Component, computed, input, output, signal } from '@angular/core';
+import { Component, InputSignal, OutputEmitterRef, Signal, WritableSignal, computed, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { StoreItem } from '../../../core/models/models';
 
@@ -8,17 +8,26 @@ import { StoreItem } from '../../../core/models/models';
   templateUrl: './items-list.component.html',
 })
 export class ItemsListComponent {
-  readonly items = input<StoreItem[]>([]);
-  readonly selectedId = input<string | null>(null);
+  // =============================
+  // === Inputs / Outputs ========
+  // =============================
+  readonly items: InputSignal<StoreItem[]> = input<StoreItem[]>([]);
+  readonly selectedId: InputSignal<string | null> = input<string | null>(null);
 
-  readonly select = output<string>();
+  readonly select: OutputEmitterRef<string> = output<string>();
 
-  readonly search = signal('');
-  readonly activeOnly = signal(false);
+  // =============================
+  // === State ====================
+  // =============================
+  readonly search: WritableSignal<string> = signal<string>('');
+  readonly activeOnly: WritableSignal<boolean> = signal<boolean>(false);
 
-  readonly filteredItems = computed(() => {
-    const query = this.search().trim().toLowerCase();
-    const activeOnly = this.activeOnly();
+  // =============================
+  // === Computed =================
+  // =============================
+  readonly filteredItems: Signal<StoreItem[]> = computed<StoreItem[]>(() => {
+    const query: string = this.search().trim().toLowerCase();
+    const activeOnly: boolean = this.activeOnly();
     return this.items().filter((item) => (!activeOnly || item.enabled) && (!query || item.name.toLowerCase().includes(query)));
   });
 }

@@ -17,7 +17,7 @@
           type="password"
           autocomplete="off"
           required
-          placeholder="eyJhbGciOi…"
+          placeholder="eyJhbGciOi..."
           class="mt-1 w-full rounded-lg border border-line bg-raised px-3 py-2 text-sm placeholder:text-mut focus:border-iris focus:outline-none"
           [ngModel]="token()"
           (ngModelChange)="token.set($event)"
@@ -31,17 +31,17 @@
         </a>
       </p>
 
-      @if (errorMessage()) {
-        <p class="rounded-lg border border-amber/40 bg-amber/10 px-3 py-2 text-sm text-amber">{{ errorMessage() }}</p>
+      @if (connectAsync.error()) {
+        <p class="rounded-lg border border-amber/40 bg-amber/10 px-3 py-2 text-sm text-amber">{{ connectAsync.error() }}</p>
       }
 
       <button
         data-focusable
         type="submit"
-        [disabled]="connecting()"
+        [disabled]="connectAsync.busy()"
         class="w-full rounded-lg bg-iris px-3.5 py-2 text-sm font-medium text-white transition hover:bg-iris-dim focus:outline-none disabled:opacity-60"
       >
-        {{ connecting() ? 'Connecting…' : 'Connect' }}
+        {{ connectAsync.busy() ? 'Connecting...' : 'Connect' }}
       </button>
     </form>
   </div>

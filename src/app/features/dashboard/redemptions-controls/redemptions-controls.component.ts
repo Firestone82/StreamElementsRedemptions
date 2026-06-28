@@ -1,4 +1,4 @@
-import { Component, HostListener, input, model, output, signal } from '@angular/core';
+import { Component, HostListener, InputSignal, ModelSignal, OutputEmitterRef, WritableSignal, input, model, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { todayIso } from '../../../core/utils/date.util';
 import { ExportFormat } from '../../../core/models/models';
@@ -9,20 +9,29 @@ import { ExportFormat } from '../../../core/models/models';
   templateUrl: './redemptions-controls.component.html',
 })
 export class RedemptionsControlsComponent {
-  readonly grouped = input(false);
-  readonly busy = input(false);
+  // =============================
+  // === Inputs / Outputs ========
+  // =============================
+  readonly grouped: InputSignal<boolean> = input<boolean>(false);
+  readonly busy: InputSignal<boolean> = input<boolean>(false);
 
-  readonly groupSearch = model('');
+  readonly groupSearch: ModelSignal<string> = model<string>('');
 
-  readonly applyRange = output<{ from: string; to: string }>();
-  readonly refresh = output<void>();
-  readonly toggleGroup = output<void>();
-  readonly export = output<ExportFormat>();
+  readonly applyRange: OutputEmitterRef<{ from: string; to: string }> = output<{ from: string; to: string }>();
+  readonly refresh: OutputEmitterRef<void> = output<void>();
+  readonly toggleGroup: OutputEmitterRef<void> = output<void>();
+  readonly export: OutputEmitterRef<ExportFormat> = output<ExportFormat>();
 
-  readonly fromDate = signal(todayIso());
-  readonly toDate = signal(todayIso());
-  readonly exportMenuOpen = signal(false);
+  // =============================
+  // === State ====================
+  // =============================
+  readonly fromDate: WritableSignal<string> = signal<string>(todayIso());
+  readonly toDate: WritableSignal<string> = signal<string>(todayIso());
+  readonly exportMenuOpen: WritableSignal<boolean> = signal<boolean>(false);
 
+  // =============================
+  // === Actions ===================
+  // =============================
   apply(): void {
     this.applyRange.emit({ from: this.fromDate(), to: this.toDate() });
   }

@@ -48,21 +48,14 @@
       }
 
       <app-redemptions-table
+        [content]="tableContent()"
         [grouped]="grouped()"
         [busy]="busy()"
         [loadingText]="loadingText()"
         [progressText]="progressText()"
         [progressPct]="progressPct()"
-        [showPlaceholder]="showPlaceholder()"
-        [rows]="rows()"
-        [groups]="groupPageRows()"
         [sortKey]="sortKey()"
         [sortOrder]="sortOrder()"
-        [showPager]="showPager()"
-        [rangeLabel]="rangeLabel()"
-        [pageSize]="currentPageSize()"
-        [prevDisabled]="prevDisabled()"
-        [nextDisabled]="nextDisabled()"
         (sortChange)="toggleSort($event)"
         (prevPage)="onPrev()"
         (nextPage)="onNext()"

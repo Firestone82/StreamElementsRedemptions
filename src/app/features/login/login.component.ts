@@ -1,7 +1,8 @@
-import { Component, inject, output, signal } from '@angular/core';
+import { Component, WritableSignal, inject, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../core/services/auth.service';
 import { StreamElementsService } from '../../core/services/stream-elements.service';
+import { AsyncSignal } from '../../core/state/async-signal';
 
 @Component({
   selector: 'app-login',
@@ -9,28 +10,42 @@ import { StreamElementsService } from '../../core/services/stream-elements.servi
   templateUrl: './login.component.html',
 })
 export class LoginComponent {
-  private readonly auth = inject(AuthService);
-  private readonly streamElements = inject(StreamElementsService);
+  // =============================
+  // === Dependencies ============
+  // =============================
+  private readonly authService = inject(AuthService);
+  private readonly streamElementsService = inject(StreamElementsService);
 
-  readonly token = signal('');
-  readonly connecting = signal(false);
-  readonly errorMessage = signal(this.auth.consumeSessionError());
+  // =============================
+  // === State ====================
+  // =============================
+  readonly token: WritableSignal<string> = signal<string>('');
+  readonly connectAsync: AsyncSignal<null> = new AsyncSignal<null>(null);
 
   readonly connected = output<void>();
 
+  // =============================
+  // === Lifecycle ================
+  // =============================
+  constructor() {
+    const sessionError: string = this.authService.consumeSessionError();
+    if (sessionError) this.connectAsync.fail(sessionError);
+  }
+
+  // =============================
+  // === Actions ===================
+  // =============================
   async submit(): Promise<void> {
-    const value = this.token().trim();
+    const value: string = this.token().trim();
     if (!value) return;
 
-    this.connecting.set(true);
-    this.errorMessage.set('');
+    this.connectAsync.start();
     try {
-      await this.streamElements.connect(value);
+      await this.streamElementsService.connect(value);
+      this.connectAsync.succeed(null);
       this.connected.emit();
     } catch (err) {
-      this.errorMessage.set(err instanceof Error ? err.message : 'Could not connect.');
-    } finally {
-      this.connecting.set(false);
+      this.connectAsync.fail(err instanceof Error ? err.message : 'Could not connect.');
     }
   }
 }

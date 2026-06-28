@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, Signal, inject } from '@angular/core';
 import { AuthService } from './core/services/auth.service';
 import { LoginComponent } from './features/login/login.component';
 import { DashboardComponent } from './features/dashboard/dashboard.component';
@@ -9,6 +9,7 @@ import { DashboardComponent } from './features/dashboard/dashboard.component';
   templateUrl: './app.html',
 })
 export class App {
-  private readonly auth = inject(AuthService);
-  readonly loggedIn = this.auth.loggedIn;
+  private readonly authService = inject(AuthService);
+
+  readonly loggedIn: Signal<boolean> = this.authService.loggedIn;
 }

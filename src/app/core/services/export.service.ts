@@ -7,19 +7,19 @@ type Cell = string | number;
 export class ExportService {
   toCsv(headers: string[], records: Cell[][]): string {
     const escapeCell = (value: Cell): string => {
-      const str = String(value ?? '');
+      const str: string = String(value ?? '');
       return /[",\n]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
     };
 
-    const lines = [headers.map(escapeCell).join(',')];
+    const lines: string[] = [headers.map(escapeCell).join(',')];
     for (const record of records) lines.push(record.map(escapeCell).join(','));
     return lines.join('\r\n') + '\r\n';
   }
 
   toTxt(label: string, grouped: boolean, headers: string[], records: Cell[][]): string {
-    const lines = [`Item: ${label}`, `Mode: ${grouped ? 'grouped per user' : 'all redemptions'}`, ''];
-    const stringRecords = records.map((record) => record.map((cell) => String(cell)));
-    const widths = headers.map((header) => header.length);
+    const lines: string[] = [`Item: ${label}`, `Mode: ${grouped ? 'grouped per user' : 'all redemptions'}`, ''];
+    const stringRecords: string[][] = records.map((record) => record.map((cell) => String(cell)));
+    const widths: number[] = headers.map((header) => header.length);
 
     for (const record of stringRecords) {
       record.forEach((cell, i) => {
@@ -27,7 +27,7 @@ export class ExportService {
       });
     }
 
-    const formatRow = (cells: string[]) => cells.map((cell, i) => cell.padEnd(widths[i])).join('  ');
+    const formatRow = (cells: string[]): string => cells.map((cell, i) => cell.padEnd(widths[i])).join('  ');
     lines.push(formatRow(headers));
     lines.push(widths.map((w) => '-'.repeat(w)).join('  '));
     for (const record of stringRecords) lines.push(formatRow(record));
@@ -36,9 +36,9 @@ export class ExportService {
   }
 
   download(filename: string, mime: string, content: string): void {
-    const blob = new Blob([content], { type: mime });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
+    const blob: Blob = new Blob([content], { type: mime });
+    const url: string = URL.createObjectURL(blob);
+    const anchor: HTMLAnchorElement = document.createElement('a');
     anchor.href = url;
     anchor.download = filename;
     document.body.appendChild(anchor);

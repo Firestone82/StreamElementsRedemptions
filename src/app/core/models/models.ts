@@ -45,3 +45,13 @@ export interface RedemptionAccumulator {
   filterLocked: boolean;
   ts: number;
 }
+
+/** Shape consumed by the table component: a page of items plus enough state to derive pager controls. */
+export interface PaginatedContent<T> {
+  items: T[];
+  offset: number;
+  pageSize: number;
+  knownCount: number;
+  total: number | null;
+  hasMore: boolean;
+}

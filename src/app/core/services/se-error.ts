@@ -1,7 +1,7 @@
 export class SEError extends Error {
   readonly status: number;
 
-  constructor(message: string, status = 502) {
+  constructor(message: string, status: number = 502) {
     super(message);
     this.status = status;
   }
